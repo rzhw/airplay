@@ -83,7 +83,15 @@ uint32_t ethutil_swapl(uint32_t l)
 // devkit shims
 int net_write(int s, const void *data, int size) {
     //printf("send hello!\n");
-    int blah = send(s, data, size, 0);
+
+    sockaddr_in address;
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_port = htons(5353);
+    address.sin_addr.s_addr = inet_addr("224.0.0.251");
+    int socklen = sizeof(struct sockaddr_in);
+
+    int blah = sendto(s, data, size, 0, (struct sockaddr *)&address, socklen);
     printf("send returned %d (errno = %d, s = %d)\n", blah, errno, s);
     return blah;
 }

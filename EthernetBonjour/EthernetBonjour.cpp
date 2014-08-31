@@ -298,14 +298,23 @@ int EthernetBonjourClass::_startMDNSSession()
         memset(&address, 0, sizeof(address));
         address.sin_family = AF_INET;
         address.sin_port = htons(5353);
-        address.sin_addr.s_addr = inet_addr("224.0.0.251");
+        address.sin_addr.s_addr = htonl(INADDR_ANY);
 
         if (bind(soc, (sockaddr*) &address, sizeof(address)) < 0) {
 		printf("errno is %d\n", errno);
+        assert(0);
             return 1;
         }
 
-        listen(soc, 3);
+   struct ip_mreq imreq;
+      imreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+   imreq.imr_interface.s_addr = INADDR_ANY; // use DEFAULT interface
+
+   // JOIN multicast group on default interface
+    int todohandlethis = setsockopt(soc, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+              (const void *)&imreq, sizeof(struct ip_mreq));
+
+
         this->_socket = soc;
     }
 

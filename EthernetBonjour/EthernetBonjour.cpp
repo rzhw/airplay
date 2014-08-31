@@ -24,6 +24,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <time.h>
+#include <assert.h>
+#include <cstring>
+#include <arpa/inet.h>
+#include "blah.h"
+
 extern "C" {
    //#include "wiring.h"
    //#include <utility/EthernetUtil.h>
@@ -267,6 +277,7 @@ int EthernetBonjourClass::isDiscoveringService()
 // return values:
 // 1 on success
 // 0 otherwise
+#include <errno.h>
 int EthernetBonjourClass::_startMDNSSession()
 {
    (void)this->_closeMDNSSession();
@@ -283,10 +294,12 @@ int EthernetBonjourClass::_startMDNSSession()
         sockaddr_in address;
         memset(&address, 0, sizeof(address));
         address.sin_family = AF_INET;
-        address.sin_port = htons(MDNS_SERVER_PORT);
-        IP4_ADDR(&address.sin_addr, 224, 0, 0, 251);
+        address.sin_port = htons(5353);
+        address.sin_addr.s_addr = inet_addr("0.0.0.0");
 
         if (bind(soc, (sockaddr*) &address, sizeof(address)) < 0) {
+            int blah = bind(soc, (sockaddr*) &address, sizeof(address)); // wat
+            int blah2 = errno;
             return 1;
         }
 

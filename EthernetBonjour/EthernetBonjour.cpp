@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -33,6 +34,8 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include "blah.h"
+
+#include "ethshim.h"
 
 extern "C" {
    //#include "wiring.h"
@@ -295,14 +298,14 @@ int EthernetBonjourClass::_startMDNSSession()
         memset(&address, 0, sizeof(address));
         address.sin_family = AF_INET;
         address.sin_port = htons(5353);
-        address.sin_addr.s_addr = inet_addr("0.0.0.0");
+        address.sin_addr.s_addr = inet_addr("224.0.0.251");
 
         if (bind(soc, (sockaddr*) &address, sizeof(address)) < 0) {
-            int blah = bind(soc, (sockaddr*) &address, sizeof(address)); // wat
-            int blah2 = errno;
+		printf("errno is %d\n", errno);
             return 1;
         }
 
+        listen(soc, 3);
         this->_socket = soc;
     }
 
@@ -328,6 +331,7 @@ int EthernetBonjourClass::_closeMDNSSession()
 MDNSError_t EthernetBonjourClass::_sendMDNSMessage(uint32_t peerAddress, uint32_t xid, int type,
                                                    int serviceRecord)
 {
+    printf("calling sendmdns message\n");
    MDNSError_t statusCode = MDNSSuccess;
    uint16_t ptr = 0;
 #if defined(_USE_MALLOC_)
@@ -558,8 +562,7 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
    memset(recordsAskedFor, 0, sizeof(uint8_t)*(NumMDNSServiceRecords+2));
    memset(recordsFound, 0, sizeof(uint8_t)*2);
 
-   int t; /* socket of connection */
-   if ((t = accept(this->_socket, NULL, NULL)) < 0) {
+   if (0 == ethernet_compat_read_SnRX_RSR(this->_socket)) {
       statusCode = MDNSTryLater;
       goto errorReturn;
    }
@@ -572,15 +575,18 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
    }
 #endif
 
+   ptr = ethernet_compat_read_SnRX_RD(this->_socket);
+
    // read UDP header
    buf = (uint8_t*)dnsHeader;
-   net_read(t, buf, 8);
+   ethernet_compat_read_data(this->_socket, (uint8_t*)ptr, (uint8_t*)buf, 8);
+   ptr += 8;
 
    memcpy(&peer_addr, buf, sizeof(uint32_t));
    *((uint16_t*)&peer_port) = ethutil_ntohs(*((uint32_t*)(buf+4)));
    *((uint16_t*)&udp_len) = ethutil_ntohs(*((uint32_t*)(buf+6)));
 
-   net_read(t, buf, sizeof(DNSHeader_t));
+   ethernet_compat_read_data(this->_socket, (uint8_t*)ptr, (uint8_t*)dnsHeader, sizeof(DNSHeader_t));
 
    xid = ethutil_ntohs(dnsHeader->xid);
    qCnt = ethutil_ntohs(dnsHeader->queryCount);
@@ -632,12 +638,14 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
 
          tLen = 0;
          do {
-            net_read(t, buf, 1);
+            ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 1);
+            offset += 1;
             rLen = buf[0];
             tLen += 1;
 
             if (rLen > 128) {// handle DNS name compression, kinda, sorta
-               net_read(t, buf, 1);
+               ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 1);
+               offset += 1;
 
                for (j=0; j<NumMDNSServiceRecords+2; j++) {
                   if (servNamePos[j] && servNamePos[j] != buf[0]) {
@@ -652,7 +660,7 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                while (tr > 0) {
                   ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
 
-                  net_read(t, (uint8_t*)buf, ir);
+                  ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, ir);
                   offset += ir;
                   tr -= ir;
 
@@ -671,7 +679,8 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
          // check wether this is an A record query (for our own name) or a PTR record query
          // (for one of our services).
          // if so, we'll note to send a record
-         net_read(t, buf, 4);
+         ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 4);
+         offset += 4;
 
          for (j=0; j<NumMDNSServiceRecords+2; j++) {
             if (!recordsAskedFor[j] && servNames[j] && servMatches[j] && 0 == servLens[j]) {
@@ -757,13 +766,13 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
             tLen = 0;
 
             do {
-               net_read(t, buf, 1);
+               ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 1);
                offset += 1;
                rLen = buf[0];
                tLen += 1;
 
                if (rLen > 128) { // handle DNS name compression, kinda, sorta...
-                  net_read(t, buf, 1);
+                  ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 1);
                   offset += 1;
 
                   for (j=0; j<2; j++) {
@@ -791,7 +800,7 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                      while (tr > 0) {
                         ir = (tr > sizeof(DNSHeader_t)) ? sizeof(DNSHeader_t) : tr;
 
-                        net_read(t, buf, ir);
+                        ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, ir);
                         offset += ir;
                         tr -= ir;
 
@@ -836,7 +845,8 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
 
                uint8_t packetHandled = 0;
 
-               net_read(t, buf, 4);
+               ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 4);
+               offset += 4;
 
                if (i < qCnt+aCnt) {
                   for (j=0; j<2; j++) {
@@ -853,14 +863,15 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                            recordsFound[j] = 1;
 
                            // this is an A or PTR type response. Parse it as such.
-                           net_read(t, buf, 6);
+                           ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 6);
+                           offset += 6;
 
                            //uint32_t ttl = ethutil_ntohl(*(uint32_t*)buf);
                            uint16_t dataLen = ethutil_ntohs(*(uint16_t*)&buf[4]);
 
                            if (0 == j && 4 == dataLen) {
                               // ok, this is the IP address. report it via callback.
-                              net_read(t, buf, 4);
+                              ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 4);
 
                               this->_finishedResolvingName((char*)this->_resolveNames[0],
                                                            (const byte*)buf);
@@ -876,9 +887,11 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                                  uint8_t* ptrName = (uint8_t*)my_malloc(l);
 
                                  if (ptrName) {
-                                    net_read(t, buf, 1);
+                                    ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset),
+                                             (uint8_t*)buf, 1);
 
-                                    net_read(t, ptrName, l-1);
+                                    ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset+1),
+                                             (uint8_t*)ptrName, l-1);
 
                                     if (buf[0] < l-1)
                                        ptrName[buf[0]]; // this catches uncompressed names
@@ -907,13 +920,14 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                               ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) ||
                               (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) {
                            // we have found the matching SRV location packet to a previous SRV domain
-                           net_read(t, buf, 6);
+                           ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 6);
+                           offset += 6;
 
                            //uint32_t ttl = ethutil_ntohl(*(uint32_t*)buf);
                            uint16_t dataLen = ethutil_ntohs(*(uint16_t*)&buf[4]);
 
                            if (dataLen >= 8) {
-                              net_read(t, buf, 8);
+                              ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 8);
 
                               ptrPorts[j] = ethutil_ntohs(*(uint16_t*)&buf[4]);
 
@@ -924,6 +938,7 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                               }
                            }
 
+                           offset += dataLen;
                            packetHandled = 1;
 
                            break;
@@ -935,7 +950,8 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                               ((firstNamePtrByte && firstNamePtrByte == ptrOffsets[j]) ||
                               (0 == ptrLensCmp[j] && ptrNamesMatches[j]))) {
 
-                           net_read(t, buf, 6);
+                           ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 6);
+                           offset += 6;
 
                            //uint32_t ttl = ethutil_ntohl(*(uint32_t*)buf);
                            uint16_t dataLen = ethutil_ntohs(*(uint16_t*)&buf[4]);
@@ -944,16 +960,15 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                            if (dataLen > 1 && NULL == servTxt[j]) {
                               servTxt[j] = (uint8_t*)my_malloc(dataLen+1);
                               if (NULL != servTxt[j]) {
-                                 net_read(t, servTxt[j],
+                                 ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)servTxt[j],
                                            dataLen);
 
                                  // zero-terminate
                                  servTxt[j][dataLen] = '\0';
                               }
-                          } else {
-                              net_read(t, NULL, dataLen);
-                          }
+                           }
 
+                           offset += dataLen;
                            packetHandled = 1;
 
                            break;
@@ -964,17 +979,17 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
                         if (0 == servIPs[j][0]) {
                            servIPs[j][0] = firstNamePtrByte ? firstNamePtrByte : 255;
 
-                           net_read(t, buf, 6);
+                           ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 6);
+                           offset += 6;
 
                            uint16_t dataLen = ethutil_ntohs(*(uint16_t*)&buf[4]);
-                           char *dummy = new char[dataLen];
 
                            if (4 == dataLen) {
-                              net_read(t, (uint8_t*)&servIPs[j][1], 4);
-                           } else {
-                              net_read(t, dummy, dataLen);
+                              ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset),
+                                        (uint8_t*)&servIPs[j][1], 4);
                            }
 
+                           offset += dataLen;
                            packetHandled = 1;
 
                            break;
@@ -985,10 +1000,9 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
 
                // eat the answer
                if (!packetHandled) {
-                  char *dummy = new char[4];
-                  net_read(t, dummy, 4); // ttl
-                  net_read(t, buf, 2); // length
-                  net_read(t, dummy, 2 + ethutil_ntohs(*(uint16_t*)buf)); // skip over content
+                  offset += 4; // ttl
+                  ethernet_compat_read_data(this->_socket, (uint8_t*)(ptr+offset), (uint8_t*)buf, 2); // length
+                  offset += 2 + ethutil_ntohs(*(uint16_t*)buf); // skip over content
                }
             }
          }
@@ -1044,6 +1058,11 @@ MDNSError_t EthernetBonjourClass::_processMDNSQuery()
 #endif // (defined(HAS_SERVICE_REGISTRATION) && HAS_SERVICE_REGISTRATION) || (defined(HAS_NAME_BROWSING) && HAS_NAME_BROWSING)
 
    ptr += udp_len;
+
+   //ethernet_compat_write_SnRX_RD(this->_socket, ptr);
+   //ethernet_compat_write_SnCR(this->_socket, ECSnCrSockRecv);
+
+   //while(ethernet_compat_read_SnCR(this->_socket));
 
 errorReturn:
 
@@ -1124,6 +1143,7 @@ void EthernetBonjourClass::run()
    // now, should we re-announce our services again?
    unsigned long announceTimeOut = (((uint32_t)MDNS_RESPONSE_TTL/2)+((uint32_t)MDNS_RESPONSE_TTL/4));
    if ((now - this->_lastAnnounceMillis) > 1000*announceTimeOut) {
+       printf("announce timeout hit\n");
       for (i=0; i<NumMDNSServiceRecords; i++) {
          if (NULL != this->_serviceRecords[i])
             (void)this->_sendMDNSMessage(0, 0, (int)MDNSPacketTypeServiceRecord, i);

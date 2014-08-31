@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <cstring>
 #include <arpa/inet.h>
+#include <cstdio>
+#include <errno.h>
 
 // ethernetutil.c
 
@@ -79,7 +81,12 @@ uint32_t ethutil_swapl(uint32_t l)
 
 
 // devkit shims
-#define net_write(s, data, size) (write(s, data, size))
+int net_write(int s, const void *data, int size) {
+    //printf("send hello!\n");
+    int blah = send(s, data, size, 0);
+    printf("send returned %d (errno = %d, s = %d)\n", blah, errno, s);
+    return blah;
+}
 #define net_read(s, mem, len) (read(s, mem, len))
 #define net_close(s) (close(s))
 #define IP4_ADDR(ipaddr, a,b,c,d) (ipaddr)->s_addr = htonl(((int32_t)(a&0xff)<<24)|((int32_t)(b&0xff)<<16)|((int32_t)(c&0xff)<<8)|(int32_t)(d&0xff))
@@ -87,7 +94,7 @@ uint32_t ethutil_swapl(uint32_t l)
 int net_gethostip() {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(sock != -1);
-    
+
     const char* kGoogleDnsIp = "8.8.8.8";
     uint16_t kDnsPort = 53;
     struct sockaddr_in serv;
@@ -95,28 +102,27 @@ int net_gethostip() {
     serv.sin_family = AF_INET;
     serv.sin_addr.s_addr = inet_addr(kGoogleDnsIp);
     serv.sin_port = htons(kDnsPort);
-    
+
     int err = connect(sock, (const sockaddr*) &serv, sizeof(serv));
     assert(err != -1);
-    
+
     sockaddr_in name;
     socklen_t namelen = sizeof(name);
     err = getsockname(sock, (sockaddr*) &name, &namelen);
     assert(err != -1);
-    
+
     int addr = name.sin_addr.s_addr;
-    
+
     close(sock);
-    
+
     return addr;
 }
 
 // arduino shims
 
 unsigned long millis() {
-    //clock_t diff = clock() - start;
-    //long ms = diff / (float)(CLOCKS_PER_SEC / 1000);
-    //return diff;
-    return 3001;
+    clock_t diff = clock() - start;
+    long ms = diff * 1000;
+    return diff;
 }
-void delay(unsigned long ms) { usleep(ms * 1000); }
+void delay(unsigned long ms) { usleep(ms * 100); } // should actually be 1000

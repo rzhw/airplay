@@ -1,7 +1,7 @@
 #ifndef __ArduinoEthernetTest__derp__
 #define __ArduinoEthernetTest__derp__
 
-#define net_write(s, data, size) (write(s, data, size))
+int net_write(int s, const void *data, int size);
 #define net_read(s, mem, len) (read(s, mem, len))
 #define net_close(s) (close(s))
 #define IP4_ADDR(ipaddr, a,b,c,d) (ipaddr)->s_addr = htonl(((int32_t)(a&0xff)<<24)|((int32_t)(b&0xff)<<16)|((int32_t)(c&0xff)<<8)|(int32_t)(d&0xff))

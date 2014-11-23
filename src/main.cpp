@@ -8,8 +8,22 @@
 #include <time.h>
 clock_t start;
 
-#define PAGE "<html><head><title>libmicrohttpd demo</title>"\
-             "</head><body>libmicrohttpd demo</body></html>"
+#define PAGE "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
+"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\""\
+" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"\
+"<plist version=\"1.0\">"\
+" <dict>"\
+"  <key>themes</key>"\
+"  <array>"\
+"   <dict>"\
+"    <key>key</key>"\
+"    <string>Wot</string>"\
+"    <key>name</key>"\
+"    <string>Wot</string>"\
+"   </dict>"\
+"  </array>"\
+" </dict>"\
+"</plist>"
 #include <microhttpd.h>
 #include <string.h>
 
@@ -97,6 +111,7 @@ static int ahc_echo(void * cls,
                        (void*) page,
                        MHD_NO,
                        MHD_NO);
+MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
   ret = MHD_queue_response(connection,
                MHD_HTTP_OK,
                response);

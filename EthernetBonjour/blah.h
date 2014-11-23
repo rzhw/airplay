@@ -11,6 +11,7 @@ extern clock_t start;
 unsigned long millis();
 void delay(unsigned long ms);
 int net_gethostip();
+int net_get_mac_address(void *mac_buf);
 
 #include <inttypes.h>
 extern uint16_t ethutil_htons(unsigned short hostshort);

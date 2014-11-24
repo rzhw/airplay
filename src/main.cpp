@@ -42,17 +42,37 @@ static int ahc_echo(void * cls,
 int main() {
     printf("hello world!\n");
 
-    char txt_buffer[100];
-    char mac[6];
-    net_get_mac_address(mac);
-    snprintf(txt_buffer, sizeof(txt_buffer),
-        "deviceid=%02X:%02X:%02X:%02X:%02X:%02X\n"
-        "features=0x%x\n"
-        "model=uwotm8",
-        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
-        AIRPLAY_SERVICE_PHOTO_FLAG & AIRPLAY_SERVICE_SCREEN_FLAG);
-    printf("txt is:\n%s\n", txt_buffer);
+    // Build the TXT record
+    char txt_buffer[100] = {0};
+    int txt_ptr = 0;
+    int len;
 
+    unsigned char mac[6];
+    net_get_mac_address(mac);
+
+    len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
+        "deviceid=%02X:%02X:%02X:%02X:%02X:%02X",
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    assert(len <= 255);
+    txt_buffer[txt_ptr] = len;
+    txt_ptr += 1 + len;
+
+    len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
+        "features=0x%x",
+        AIRPLAY_SERVICE_PHOTO_FLAG | AIRPLAY_SERVICE_SCREEN_FLAG);
+    assert(len <= 255);
+    txt_buffer[txt_ptr] = len;
+    txt_ptr += 1 + len;
+
+    len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
+        "model=uwotm8");
+    assert(len <= 255);
+    txt_buffer[txt_ptr] = len;
+    txt_ptr += 1 + len;
+
+    printf("txt is:\n%s\ntxt length is: %d\n", txt_buffer, strlen(txt_buffer));
+
+    // Broadcast the Bonjour service
     start = clock();
     EthernetBonjourClass bonjour = EthernetBonjourClass();
     int err = bonjour.begin("wot");

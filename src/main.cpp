@@ -56,7 +56,7 @@ int main() {
     start = clock();
     EthernetBonjourClass bonjour = EthernetBonjourClass();
     int err = bonjour.begin("wot");
-    bonjour.addServiceRecord("_airplay._tcp", 7000, MDNSServiceTCP, NULL);
+    bonjour.addServiceRecord("uwotm9._airplay", 7000, MDNSServiceTCP, NULL);
     assert(!err);
 
   struct MHD_Daemon * d;

@@ -24,6 +24,23 @@ clock_t start;
 "  </array>"\
 " </dict>"\
 "</plist>"
+#define PAGE2 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
+"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\""\
+" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"\
+"<plist version=\"1.0\">"\
+" <dict>"\
+"  <key>height</key>"\
+"  <integer>720</integer>"\
+"  <key>overscanned</key>"\
+"  <true/>"\
+"  <key>refreshRate</key>"\
+"  <real>0.016666666666666666</real>"\
+"  <key>version</key>"\
+"  <string>130.14</string>"\
+"  <key>width</key>"\
+"  <integer>1280</integer>"\
+" </dict>"\
+"</plist>"
 #include <microhttpd.h>
 #include <string.h>
 
@@ -31,6 +48,15 @@ clock_t start;
 #define AIRPLAY_SERVICE_SCREEN_FLAG (1 << 7)
 
 static int ahc_echo(void * cls,
+            struct MHD_Connection * connection,
+            const char * url,
+            const char * method,
+                    const char * version,
+            const char * upload_data,
+            size_t * upload_data_size,
+                    void ** ptr);
+
+static int mirroring_handler(void * cls,
             struct MHD_Connection * connection,
             const char * url,
             const char * method,
@@ -89,6 +115,16 @@ int main() {
                MHD_OPTION_END);
   if (d == NULL)
     return 1;
+  struct MHD_Daemon * d2;
+  d2 = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
+               7100,
+               NULL,
+               NULL,
+               &mirroring_handler,
+               (void *)PAGE2,
+               MHD_OPTION_END);
+  if (d2 == NULL)
+    return 1;
 
     printf("about to start loop\n");
     while (1) {
@@ -115,7 +151,46 @@ static int ahc_echo(void * cls,
   struct MHD_Response * response;
   int ret;
 
-  printf("%s %s with upload data size %d\n", method, url, upload_data_size);
+  printf("1337 %s %s with upload data size %d\n", method, url, upload_data_size);
+
+  if (0 != strcmp(method, "GET"))
+    return MHD_NO; /* unexpected method */
+  if (&dummy != *ptr)
+    {
+      /* The first time only the headers are valid,
+         do not respond in the first round... */
+      *ptr = &dummy;
+      return MHD_YES;
+    }
+  if (0 != *upload_data_size)
+    return MHD_NO; /* upload data in a GET!? */
+  *ptr = NULL; /* clear context pointer */
+  response = MHD_create_response_from_data(strlen(page),
+                       (void*) page,
+                       MHD_NO,
+                       MHD_NO);
+MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
+  ret = MHD_queue_response(connection,
+               MHD_HTTP_OK,
+               response);
+  MHD_destroy_response(response);
+  return ret;
+}
+
+static int mirroring_handler(void * cls,
+            struct MHD_Connection * connection,
+            const char * url,
+            const char * method,
+                    const char * version,
+            const char * upload_data,
+            size_t * upload_data_size,
+                    void ** ptr) {
+  static int dummy;
+  const char * page = (const char *)cls;
+  struct MHD_Response * response;
+  int ret;
+
+  printf("7100 %s %s with upload data size %d\n", method, url, upload_data_size);
 
   if (0 != strcmp(method, "GET"))
     return MHD_NO; /* unexpected method */

@@ -115,6 +115,8 @@ static int ahc_echo(void * cls,
   struct MHD_Response * response;
   int ret;
 
+  printf("%s %s with upload data size %d\n", method, url, upload_data_size);
+
   if (0 != strcmp(method, "GET"))
     return MHD_NO; /* unexpected method */
   if (&dummy != *ptr)

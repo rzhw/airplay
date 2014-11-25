@@ -14,6 +14,7 @@
 #include <net/if.h>
 
 // ethernetutil.c
+// i think this is wii side shims
 
 #define __ETHERNET_UTIL_BONJOUR__ (1)
 
@@ -122,6 +123,9 @@ int net_gethostip() {
     assert(err != -1); // Fails if no internet connection
 
     int addr = name.sin_addr.s_addr;
+
+    //char wot[24];
+    //printf("my ip is %s\n", inet_ntop(AF_INET, &name.sin_addr.s_addr, wot, 24));
 
     close(sock);
 

@@ -104,5 +104,5 @@ uint8_t ethernet_compat_read_SnCR(int socket) {
 // GET IP
 void ethernet_compat_read_SIPR(uint8_t* dst) {
     int ip = net_gethostip();
-    memcpy(&dst, &ip, 4);
+    memcpy(dst, &ip, 4);
 }

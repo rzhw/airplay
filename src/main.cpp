@@ -47,7 +47,7 @@ clock_t start;
 #define AIRPLAY_SERVICE_PHOTO_FLAG (1 << 1)
 #define AIRPLAY_SERVICE_SCREEN_FLAG (1 << 7)
 
-static int ahc_echo(void * cls,
+static int airplay_handler(void * cls,
             struct MHD_Connection * connection,
             const char * url,
             const char * method,
@@ -170,10 +170,10 @@ int main() {
 
   struct MHD_Daemon * d;
   d = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
-               1337,
+               7000,
                NULL,
                NULL,
-               &ahc_echo,
+               &airplay_handler,
                (void *)PAGE,
                MHD_OPTION_END);
   if (d == NULL)
@@ -201,7 +201,7 @@ int main() {
     return EXIT_SUCCESS;
 }
 
-static int ahc_echo(void * cls,
+static int airplay_handler(void * cls,
             struct MHD_Connection * connection,
             const char * url,
             const char * method,
@@ -214,7 +214,7 @@ static int ahc_echo(void * cls,
   struct MHD_Response * response;
   int ret;
 
-  printf("1337 %s %s with upload data size %d\n", method, url, upload_data_size);
+  printf("7000 %s %s with upload data size %d\n", method, url, upload_data_size);
 
   if (0 != strcmp(method, "GET"))
     return MHD_NO; /* unexpected method */

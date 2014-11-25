@@ -69,7 +69,7 @@ int main() {
     printf("hello world!\n");
 
     // Build the TXT record
-    char txt_buffer[100] = {0};
+    char txt_buffer[128] = {0};
     int txt_ptr = 0;
     int len;
 
@@ -85,24 +85,87 @@ int main() {
 
     len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
         "features=0x%x",
-        AIRPLAY_SERVICE_PHOTO_FLAG | AIRPLAY_SERVICE_SCREEN_FLAG);
+        0x77);
     assert(len <= 255);
     txt_buffer[txt_ptr] = len;
     txt_ptr += 1 + len;
 
     len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
-        "model=uwotm8");
+        "model=uwotm8,1");
+    assert(len <= 255);
+    txt_buffer[txt_ptr] = len;
+    txt_ptr += 1 + len;
+
+    len = snprintf(txt_buffer+txt_ptr+1, sizeof(txt_buffer)-txt_ptr-1,
+        "srcvers=101.28");
     assert(len <= 255);
     txt_buffer[txt_ptr] = len;
     txt_ptr += 1 + len;
 
     printf("txt is:\n%s\ntxt length is: %d\n", txt_buffer, strlen(txt_buffer));
 
+    // Build the TXT record 2
+    char raopname_buffer[128] = {0};
+    snprintf(raopname_buffer, sizeof(raopname_buffer),
+        "%02X%02X%02X%02X%02X%02X@%s._raop",
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+        "uwotm9");
+
+    char txt_buffer2[512] = {0};
+    txt_ptr = 0;
+
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "am=uwotm8,1");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "ch=2");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "cn=0,1");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "da=true");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "et=0,1");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "md=0,1,2");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "pw=false");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "sm=false");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "sr=44100");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "ss=16");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "sv=false");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "tp=UDP");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "txtvers=1");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "vn=3");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+    len = snprintf(txt_buffer2+txt_ptr+1, sizeof(txt_buffer2)-txt_ptr-1,
+        "vs=130.14");
+    txt_buffer2[txt_ptr] = len; txt_ptr += 1 + len;
+
     // Broadcast the Bonjour service
     start = clock();
     EthernetBonjourClass bonjour = EthernetBonjourClass();
     int err = bonjour.begin("wot");
     bonjour.addServiceRecord("uwotm9._airplay", 7000, MDNSServiceTCP, txt_buffer);
+    bonjour.addServiceRecord(raopname_buffer, 49152, MDNSServiceTCP, txt_buffer2);
     assert(!err);
 
   struct MHD_Daemon * d;

@@ -21,6 +21,7 @@ public:
     ~AirPlayHTTPServer();
     int begin();
     int get_server_info(struct MHD_Connection *);
+    int get_slideshow_features(struct MHD_Connection *);
     int put_photo(struct MHD_Connection *, const void *, size_t);
     const AirPlayInfo *info;
 private:

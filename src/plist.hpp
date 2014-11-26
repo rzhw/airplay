@@ -13,7 +13,8 @@ public:
     void add_string(const char *, const char *);
     void add_integer(const char *, int);
     void add_real(const char *, const char *);
-    std::string str();
+    void add_array(const char *, const PlistBuilder &);
+    std::string str() const;
 private:
     std::stringstream ss;
 };

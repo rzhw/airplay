@@ -31,7 +31,18 @@ void PlistBuilder::add_real(const char *key, const char *string) {
     this->ss << "  <real>" << string << "</real>\n";
 }
 
-std::string PlistBuilder::str() {
+void PlistBuilder::add_array(const char *key, const PlistBuilder &array) {
+    this->ss << "  <key>" << key << "</key>\n";
+    this->ss << "  <array>\n";
+    auto str = array.str();
+    size_t dictStart = str.find("<dict>");
+    size_t dictEnd = str.find("</dict>");
+    auto str2 = str.substr(dictStart, dictEnd - dictStart + 8);
+    this->ss << "    " << str2;
+    this->ss << "  </array>\n";
+}
+
+std::string PlistBuilder::str() const {
     std::string str = this->ss.str();
     str.append(
 " </dict>\n"\

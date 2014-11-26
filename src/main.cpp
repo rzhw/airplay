@@ -84,7 +84,7 @@ int main() {
     txt_buffer[txt_ptr] = len;
     txt_ptr += 1 + len;
 
-    printf("txt is:\n%s\ntxt length is: %d\n", txt_buffer, strlen(txt_buffer));
+    printf("txt is:\n%s\ntxt length is: %zu\n", txt_buffer, strlen(txt_buffer));
 
     // Build the TXT record 2
     char raopname_buffer[128] = {0};
@@ -189,7 +189,7 @@ static int mirroring_handler(void * cls,
   struct MHD_Response * response;
   int ret;
 
-  printf("7100 %s %s with upload data size %d\n", method, url, upload_data_size);
+  printf("7100 %s %s with upload data size %zu\n", method, url, *upload_data_size);
 
   if (0 != strcmp(method, "GET"))
     return MHD_NO; /* unexpected method */

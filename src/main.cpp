@@ -46,8 +46,8 @@ int main() {
 
     unsigned char mac[6];
     net_get_mac_address(mac);
-    char macstr[17];
-    snprintf(macstr, 17, "%02X:%02X:%02X:%02X:%02X:%02X",
+    char macstr[18];
+    snprintf(macstr, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     info.deviceid = macstr;

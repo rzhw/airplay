@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <microhttpd.h>
+#include <assert.h>
 #include "airplay.hpp"
 #include "plist.hpp"
 
@@ -32,7 +33,9 @@ static int handle_request(void *cls,
 
     printf("7000 %s %s with upload data size %d\n", method, url, upload_data_size);
 
-    if (strcmp(method, "GET") == 0 && strcmp(url, "/server-info") == 0) {
+    if (strcmp(method, "POST") == 0 && strcmp(url, "/reverse") == 0) {
+        ret = that->post_reverse(connection);
+    } else if (strcmp(method, "GET") == 0 && strcmp(url, "/server-info") == 0) {
         ret = that->get_server_info(connection);
     } else if (strcmp(method, "GET") == 0 && strcmp(url, "/slideshow-features") == 0) {
         ret = that->get_slideshow_features(connection);
@@ -73,10 +76,31 @@ int AirPlayHTTPServer::begin() {
             &handle_request,
             this,
             MHD_OPTION_END);
-
     if (this->daemon == NULL)
         return 1;
     return 0;
+}
+
+int AirPlayHTTPServer::post_reverse(struct MHD_Connection *connection) {
+    const char *session_id = MHD_lookup_connection_value(
+            connection, MHD_HEADER_KIND, "X-Apple-Session-ID");
+    assert(session_id != NULL); // TODO handle properly
+    this->session_id = std::string(session_id);
+
+    printf("session id is %s\n", session_id);
+
+    struct MHD_Response *response = MHD_create_response_from_data(
+            0,
+            NULL,
+            MHD_NO,
+            MHD_NO);
+    MHD_add_response_header(response, "Upgrade", "PTTH/1.0");
+    MHD_add_response_header(response, "Connection", "Upgrade");
+    int ret = MHD_queue_response(connection,
+            MHD_HTTP_SWITCHING_PROTOCOLS,
+            response);
+    MHD_destroy_response(response);
+    return ret;
 }
 
 int AirPlayHTTPServer::get_server_info(struct MHD_Connection *connection) {

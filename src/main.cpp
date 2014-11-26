@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "EthernetBonjour.h"
-
-#include "blah.h"
+#include "bonjour/EthernetBonjour.h"
+#include "bonjour/blah.h"
 #include <time.h>
 clock_t start;
 

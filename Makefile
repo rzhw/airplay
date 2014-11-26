@@ -1,9 +1,31 @@
 CC=clang++
-CFLAGS=-g
+CXXFLAGS=-Wall -std=c++11
+SRCDIR=src
+BUILDDIR=build
+TARGET=wat
 
-all: program
-program: src/main.cpp
-	     $(CC) src/blah.cpp src/ethshim.cpp src/EthernetBonjour.cpp src/plist.cpp src/airplay_http.cpp src/main.cpp -std=c++11 -o wat -lmicrohttpd
+all: $(BUILDDIR)/$(TARGET)
+
+$(BUILDDIR)/bonjour/blah.o: $(SRCDIR)/bonjour/blah.cpp
+$(BUILDDIR)/bonjour/ethshim.o: $(SRCDIR)/bonjour/ethshim.cpp
+$(BUILDDIR)/bonjour/blah.o $(BUILDDIR)/bonjour/ethshim.o:
+	@mkdir -p $(BUILDDIR)/bonjour
+	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/bonjour/EthernetBonjour.o: $(SRCDIR)/bonjour/EthernetBonjour.cpp
+	@mkdir -p $(BUILDDIR)/bonjour
+	$(CC) $(CXXFLAGS) -w -c -o $@ $<
+
+#$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+#	$(CC) $(CXXFLAGS) -c -o $@ $<
+$(BUILDDIR)/airplay_http.o: $(SRCDIR)/airplay_http.cpp
+$(BUILDDIR)/plist.o: $(SRCDIR)/plist.cpp
+$(BUILDDIR)/main.o: $(SRCDIR)/main.cpp
+$(BUILDDIR)/airplay_http.o $(BUILDDIR)/plist.o $(BUILDDIR)/main.o:
+	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/$(TARGET): $(BUILDDIR)/bonjour/blah.o $(BUILDDIR)/bonjour/ethshim.o $(BUILDDIR)/bonjour/EthernetBonjour.o $(BUILDDIR)/airplay_http.o $(BUILDDIR)/plist.o $(BUILDDIR)/main.o
+	$(CC) $(CXXFLAGS) -lmicrohttpd $(BUILDDIR)/bonjour/blah.o $(BUILDDIR)/bonjour/ethshim.o $(BUILDDIR)/bonjour/EthernetBonjour.o $(BUILDDIR)/airplay_http.o $(BUILDDIR)/plist.o $(BUILDDIR)/main.o -o $@
 
 clean:
-	rm wat
+	rm -rf build/

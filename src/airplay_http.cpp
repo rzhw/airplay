@@ -3,6 +3,7 @@
 #include <string.h>
 #include <microhttpd.h>
 #include "airplay.hpp"
+#include "plist.hpp"
 
 #define PAGE "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
 "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\""\
@@ -94,34 +95,16 @@ int AirPlayHTTPServer::begin() {
 }
 
 int AirPlayHTTPServer::get_server_info(struct MHD_Connection *connection) {
-    char plist[500];
-    snprintf(plist, sizeof(plist),
-"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"\
-"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\"\n"\
-" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"\
-"<plist version=\"1.0\">\n"\
-" <dict>\n"\
-"  <key>deviceid</key>\n"\
-"  <string>%s</string>\n"\
-"  <key>features</key>\n"\
-"  <integer>%d</integer>\n"\
-"  <key>model</key>\n"\
-"  <string>%s</string>\n"\
-"  <key>protovers</key>\n"\
-"  <string>%s</string>\n"\
-"  <key>srcvers</key>\n"\
-"  <string>%s</string>\n"\
-" </dict>\n"\
-"</plist>",
-        this->info->deviceid,
-        this->info->features,
-        this->info->model,
-        this->info->protovers,
-        this->info->srcvers);
+    PlistBuilder plist;
+    plist.add_string("deviceid", this->info->deviceid);
+    plist.add_integer("features", this->info->features);
+    plist.add_string("model", this->info->model);
+    plist.add_string("protovers", this->info->protovers);
+    plist.add_string("srcvers", this->info->srcvers);
 
     struct MHD_Response *response = MHD_create_response_from_data(
-            strlen(plist),
-            (void *)plist,
+            plist.str().length(),
+            (void *)plist.str().c_str(),
             MHD_YES,
             MHD_YES);
 

@@ -50,6 +50,8 @@ static int handle_request(void *cls,
 
     if (strcmp(method, "GET") == 0 && strcmp(url, "/server-info") == 0) {
         ret = that->get_server_info(connection);
+    } else if (strcmp(method, "PUT") == 0 && strcmp(url, "/photo") == 0) {
+        ret = that->put_photo(connection, (const void *)upload_data, *upload_data_size);
     } else {
         if (0 != strcmp(method, "GET"))
         return MHD_NO; /* unexpected method */
@@ -94,22 +96,22 @@ int AirPlayHTTPServer::begin() {
 int AirPlayHTTPServer::get_server_info(struct MHD_Connection *connection) {
     char plist[500];
     snprintf(plist, sizeof(plist),
-"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
-"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\""\
-" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"\
-"<plist version=\"1.0\">"\
-" <dict>"\
-"  <key>deviceid</key>"\
-"  <string>%s</string>"\
-"  <key>features</key>"\
-"  <integer>%d</integer>"\
-"  <key>model</key>"\
-"  <string>%s</string>"\
-"  <key>protovers</key>"\
-"  <string>%s</string>"\
-"  <key>srcvers</key>"\
-"  <string>%s</string>"\
-" </dict>"\
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"\
+"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\"\n"\
+" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"\
+"<plist version=\"1.0\">\n"\
+" <dict>\n"\
+"  <key>deviceid</key>\n"\
+"  <string>%s</string>\n"\
+"  <key>features</key>\n"\
+"  <integer>%d</integer>\n"\
+"  <key>model</key>\n"\
+"  <string>%s</string>\n"\
+"  <key>protovers</key>\n"\
+"  <string>%s</string>\n"\
+"  <key>srcvers</key>\n"\
+"  <string>%s</string>\n"\
+" </dict>\n"\
 "</plist>",
         this->info->deviceid,
         this->info->features,
@@ -123,14 +125,25 @@ int AirPlayHTTPServer::get_server_info(struct MHD_Connection *connection) {
             MHD_YES,
             MHD_YES);
 
-    printf(plist);
     MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
     int ret = MHD_queue_response(connection,
             MHD_HTTP_OK,
             response);
     MHD_destroy_response(response);
+    return ret;
+}
 
-    printf("done\n");
+int AirPlayHTTPServer::put_photo(struct MHD_Connection *connection, const void *data, size_t size) {
+    printf("Received photo, %d bytes\n", size);
 
+    struct MHD_Response *response = MHD_create_response_from_data(
+            0,
+            NULL,
+            MHD_NO,
+            MHD_NO);
+    int ret = MHD_queue_response(connection,
+            MHD_HTTP_OK,
+            response);
+    MHD_destroy_response(response);
     return ret;
 }

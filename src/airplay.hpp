@@ -8,11 +8,11 @@
 #define AIRPLAY_SERVICE_SCREEN_FLAG (1 << 7)
 
 typedef struct _AirPlayInfo {
-    char *deviceid;
+    const char *deviceid;
     int features;
-    char *model;
-    char *protovers;
-    char *srcvers;
+    const char *model;
+    const char *protovers;
+    const char *srcvers;
 } AirPlayInfo;
 
 class AirPlayHTTPServer

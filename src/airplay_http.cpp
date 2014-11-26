@@ -48,7 +48,7 @@ static int handle_request(void *cls,
     struct MHD_Response * response;
     int ret;
 
-    printf("7000 %s %s with upload data size %d\n", method, url, upload_data_size);
+    printf("7000 %s %s with upload data size %zu\n", method, url, *upload_data_size);
 
     if (strcmp(method, "POST") == 0 && strcmp(url, "/reverse") == 0) {
         ret = that->post_reverse(connection);
@@ -161,8 +161,22 @@ int AirPlayHTTPServer::get_slideshow_features(struct MHD_Connection *connection)
     return ret;
 }
 
+size_t photo_received;
+void *photo_buffer;
 int AirPlayHTTPServer::put_photo(struct MHD_Connection *connection, const void *data, size_t size) {
-    printf("Received photo, %d bytes\n", size);
+    long content_length = strtol(MHD_lookup_connection_value(
+        connection, MHD_HEADER_KIND, "Content-Length"), (char **)NULL, 10);
+    printf("Received photo, MHD: %zu bytes Content-Length: %d bytes\n", size, content_length);
+
+    if (photo_buffer == NULL) {
+        // FIrst packet has no data? <-- YEP need to loop until all data received
+        photo_buffer = malloc(content_length);
+        return MHD_YES;
+    } else {
+        printf("this is not first\n");
+        photo_received += size;
+        assert(0);
+    }
 
     struct MHD_Response *response = MHD_create_response_from_data(
             0,

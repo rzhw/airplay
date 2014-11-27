@@ -34,15 +34,10 @@ AirPlayHTTPServer::~AirPlayHTTPServer() {
     }
 }
 
-static int handle_request(void *cls,
-        struct MHD_Connection *connection,
-        const char *url,
-        const char *method,
-        const char *version,
-        const char *upload_data,
-        size_t *upload_data_size,
-        void **ptr) {
-
+static int handle_request(void *cls, struct MHD_Connection *connection,
+                          const char *url, const char *method,
+                          const char *version, const char *upload_data,
+                          size_t *upload_data_size, void **ptr) {
     static int dummy;
     AirPlayHTTPServer *that = (AirPlayHTTPServer *)cls;
     struct MHD_Response * response;
@@ -73,13 +68,13 @@ static int handle_request(void *cls,
         *ptr = NULL; /* clear context pointer */
         const char *page = "u wot mate";
         response = MHD_create_response_from_data(strlen(page),
-                (void*) page,
-                MHD_NO,
-                MHD_NO);
+            (void*) page,
+            MHD_NO,
+            MHD_NO);
         MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
         ret = MHD_queue_response(connection,
-                MHD_HTTP_OK,
-                response);
+            MHD_HTTP_OK,
+            response);
         MHD_destroy_response(response);
     }
     return ret;
@@ -87,12 +82,12 @@ static int handle_request(void *cls,
 
 int AirPlayHTTPServer::begin() {
     this->daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
-            7000,
-            NULL,
-            NULL,
-            &handle_request,
-            this,
-            MHD_OPTION_END);
+        7000,
+        NULL,
+        NULL,
+        &handle_request,
+        this,
+        MHD_OPTION_END);
     if (this->daemon == NULL)
         return 1;
     return 0;
@@ -107,15 +102,15 @@ int AirPlayHTTPServer::post_reverse(struct MHD_Connection *connection) {
     printf("session id is %s\n", session_id);
 
     struct MHD_Response *response = MHD_create_response_from_data(
-            0,
-            NULL,
-            MHD_NO,
-            MHD_NO);
+        0,
+        NULL,
+        MHD_NO,
+        MHD_NO);
     MHD_add_response_header(response, "Upgrade", "PTTH/1.0");
     MHD_add_response_header(response, "Connection", "Upgrade");
     int ret = MHD_queue_response(connection,
-            MHD_HTTP_SWITCHING_PROTOCOLS,
-            response);
+        MHD_HTTP_SWITCHING_PROTOCOLS,
+        response);
     MHD_destroy_response(response);
     return ret;
 }
@@ -129,14 +124,12 @@ int AirPlayHTTPServer::get_server_info(struct MHD_Connection *connection) {
     plist.add_string("srcvers", this->info->srcvers);
 
     struct MHD_Response *response = MHD_create_response_from_data(
-            plist.str().length(),
-            (void *)plist.str().c_str(),
-            MHD_YES,
-            MHD_YES);
+        plist.str().length(),
+        (void *)plist.str().c_str(),
+        MHD_YES,
+        MHD_YES);
     MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
-    int ret = MHD_queue_response(connection,
-            MHD_HTTP_OK,
-            response);
+    int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
     return ret;
 }
@@ -149,21 +142,20 @@ int AirPlayHTTPServer::get_slideshow_features(struct MHD_Connection *connection)
     plist.add_array("themes", themes);
 
     struct MHD_Response *response = MHD_create_response_from_data(
-            plist.str().length(),
-            (void *)plist.str().c_str(),
-            MHD_YES,
-            MHD_YES);
+        plist.str().length(),
+        (void *)plist.str().c_str(),
+        MHD_YES,
+        MHD_YES);
     MHD_add_response_header(response, "Content-Type", "text/x-apple-plist+xml");
-    int ret = MHD_queue_response(connection,
-            MHD_HTTP_OK,
-            response);
+    int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
     return ret;
 }
 
 size_t photo_received;
 void *photo_buffer;
-int AirPlayHTTPServer::put_photo(struct MHD_Connection *connection, const void *data, size_t size) {
+int AirPlayHTTPServer::put_photo(struct MHD_Connection *connection,
+                                 const void *data, size_t size) {
     long content_length = strtol(MHD_lookup_connection_value(
         connection, MHD_HEADER_KIND, "Content-Length"), (char **)NULL, 10);
     printf("Received photo, MHD: %zu bytes Content-Length: %d bytes\n", size, content_length);
@@ -179,13 +171,11 @@ int AirPlayHTTPServer::put_photo(struct MHD_Connection *connection, const void *
     }
 
     struct MHD_Response *response = MHD_create_response_from_data(
-            0,
-            NULL,
-            MHD_NO,
-            MHD_NO);
-    int ret = MHD_queue_response(connection,
-            MHD_HTTP_OK,
-            response);
+        0,
+        NULL,
+        MHD_NO,
+        MHD_NO);
+    int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
     return ret;
 }
